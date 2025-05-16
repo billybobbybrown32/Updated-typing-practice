@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>Typing Practice</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
@@ -66,64 +66,6 @@
       margin-top: 30px;
       max-width: 600px;
     }
-
-    /* Cheat Menu Styles */
-    #cheatMenuWrapper {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--box-bg);
-      border: 1px solid #666;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      width: 200px;
-      font-size: 14px;
-      color: var(--text-color);
-      user-select: none;
-      transition: opacity 0.3s ease;
-      opacity: 0.3;
-      cursor: pointer;
-      z-index: 9999;
-    }
-    #cheatMenuWrapper:hover {
-      opacity: 1;
-    }
-    #cheatMenu {
-      display: none;
-      padding: 10px;
-      text-align: left;
-    }
-    #cheatMenuWrapper:hover #cheatMenu {
-      display: block;
-    }
-    #cheatMenu button {
-      width: 100%;
-      margin: 4px 0;
-      padding: 6px;
-      background: #0077ff;
-      border: none;
-      color: white;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 13px;
-      transition: background 0.2s;
-    }
-    #cheatMenu button:hover {
-      background: #005bbb;
-    }
-    #cheatFooter {
-      font-size: 11px;
-      margin-top: 6px;
-      color: gray;
-      text-align: center;
-    }
-    #cheatFooter a {
-      color: #0077ff;
-      text-decoration: none;
-    }
-    #cheatFooter a:hover {
-      text-decoration: underline;
-    }
   </style>
 </head>
 <body>
@@ -146,7 +88,7 @@
   <div id="streak">Perfect Streak: 0</div>
   <div id="prompt"></div>
   <div id="highlighted"></div>
-  <input type="text" id="inputBox" placeholder="Start typing here..." oninput="checkTyping()" disabled />
+  <input type="text" id="inputBox" placeholder="Start typing here..." oninput="checkTyping()" disabled>
   <div id="result"></div>
   <div id="wpm"></div>
   <div id="accuracy"></div>
@@ -156,22 +98,8 @@
 
   <div id="links">
     <a class="icon" href="https://discord.gg/aMaPgt3Z" target="_blank" title="Join Discord"><i class="fab fa-discord"></i></a>
-    <a class="icon" href="https://www.youtube.com/channel/UChpNbCvMs7-yOIY2mH_pnw" target="_blank" title="YouTube Channel"><i class="fab fa-youtube"></i></a>
+    <a class="icon" href="https://www.youtube.com/channel/UChpNbCvMs7-yOIYI2mH_pnw" target="_blank" title="YouTube Channel"><i class="fab fa-youtube"></i></a>
     <a class="icon" href="https://github.com/billybobbybrown32" target="_blank" title="GitHub Profile"><i class="fab fa-github"></i></a>
-  </div>
-
-  <!-- Cheat Menu -->
-  <div id="cheatMenuWrapper" title="Cheat Menu (hover to show)">
-    <div style="padding: 8px; font-weight: bold; text-align: center;">Cheat Menu</div>
-    <div id="cheatMenu">
-      <button onclick="TypingCheat.autoType()">Auto Type</button>
-      <button onclick="TypingCheat.speedBoost(150)">Speed Boost 150 WPM</button>
-      <button onclick="TypingCheat.showDebug()">Show Debug Info</button>
-      <button onclick="TypingCheat.resetStats()">Reset Stats</button>
-      <div id="cheatFooter">
-        Dev Console by <a href="https://github.com/billybobbybrown32" target="_blank" rel="noopener noreferrer">billybobbybrown32</a>
-      </div>
-    </div>
   </div>
 
   <script>
@@ -257,7 +185,6 @@
       const input = inputBox.value;
       let correctChars = 0;
       let display = "";
-      mistakes = 0; // reset mistakes count on every input check
 
       for (let i = 0; i < currentText.length; i++) {
         if (i < input.length) {
@@ -284,3 +211,44 @@
         const wordCount = currentText.trim().split(/\s+/).length;
         const wpm = Math.round(wordCount / timeTaken);
         result.style.color = "green";
+        result.innerText = "Correct! ✅";
+        wpmDisplay.innerText = `WPM: ${wpm}`;
+        inputBox.disabled = true;
+
+        if (wpm > highScore) {
+          highScore = wpm;
+          localStorage.setItem("typingHighScore", highScore);
+          highScoreDisplay.innerText = `High Score: ${highScore} WPM`;
+        }
+
+        streak = (mistakes === 0) ? streak + 1 : 0;
+        streakDisplay.innerText = `Perfect Streak: ${streak}`;
+
+        totalWpm += wpm;
+        totalRuns++;
+        avgWpmDisplay.innerText = `Average WPM: ${(totalWpm / totalRuns).toFixed(1)}`;
+
+        wpmHistory.push(wpm);
+        chart.data.labels.push(totalRuns);
+        chart.data.datasets[0].data = wpmHistory;
+        chart.update();
+
+        setTimeout(() => {
+          if (currentLevel < maxLevels) {
+            currentLevel++;
+            levelDisplay.innerText = `Level: ${currentLevel}`;
+            loadNewPhrase();
+          } else {
+            alert("🏁 You completed all levels!");
+            inputBox.disabled = true;
+          }
+        }, 800);
+      }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+  </script>
+</body>
+</html>
