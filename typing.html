@@ -2,13 +2,16 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Ultimate Typing Practice</title>
+  <title>Typing Practice</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg-color: #f0f0f0;
       --text-color: #000;
       --box-bg: #fff;
+      --correct-color: green;
+      --wrong-color: red;
     }
     body.dark {
       --bg-color: #121212;
@@ -20,7 +23,7 @@
       color: var(--text-color);
       font-family: Arial, sans-serif;
       text-align: center;
-      padding: 40px;
+      padding: 50px;
       transition: background 0.3s, color 0.3s;
     }
     select, input, button {
@@ -32,18 +35,18 @@
       border: 1px solid #999;
       border-radius: 5px;
     }
-    #prompt {
+    #prompt, #highlighted {
       margin-top: 20px;
       font-size: 24px;
       font-weight: bold;
     }
-    #result, #wpm, #highScore {
-      margin-top: 15px;
+    .correct { color: var(--correct-color); }
+    .wrong { color: var(--wrong-color); }
+    #result, #wpm, #highScore, #level, #accuracy, #mistakes, #avgWpm, #streak {
+      margin-top: 10px;
       font-size: 18px;
     }
-    #links {
-      margin-top: 40px;
-    }
+    #links { margin-top: 40px; }
     .icon {
       font-size: 30px;
       margin: 0 15px;
@@ -55,14 +58,18 @@
       transform: scale(1.2);
       color: #0077ff;
     }
-    #controls {
-      margin-top: 20px;
+    #toggleDark, #tryAgain {
+      margin-top: 30px;
+      padding: 8px 16px;
+    }
+    canvas {
+      margin-top: 30px;
+      max-width: 600px;
     }
   </style>
 </head>
 <body>
-  <h1>Ultimate Typing Practice</h1>
-
+  <h1>Typing Practice</h1>
   <label for="mode">Choose Difficulty:</label>
   <select id="mode">
     <option value="easy">Easy</option>
@@ -72,28 +79,28 @@
     <option value="impossible">Impossible</option>
   </select>
   <button onclick="start()">Start</button>
+  <button id="toggleDark" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+  <button id="tryAgain" onclick="loadNewPhrase()">Try Again</button>
 
+  <div id="highScore">High Score: -- WPM</div>
+  <div id="level">Level: 1</div>
+  <div id="avgWpm">Average WPM: --</div>
+  <div id="streak">Perfect Streak: 0</div>
   <div id="prompt"></div>
+  <div id="highlighted"></div>
   <input type="text" id="inputBox" placeholder="Start typing here..." oninput="checkTyping()" disabled>
   <div id="result"></div>
   <div id="wpm"></div>
-  <div id="highScore"></div>
+  <div id="accuracy"></div>
+  <div id="mistakes"></div>
+
+  <canvas id="wpmChart"></canvas>
 
   <div id="links">
     <a class="icon" href="https://discord.gg/aMaPgt3Z" target="_blank" title="Join Discord"><i class="fab fa-discord"></i></a>
-    <a class="icon" href="https://www.youtube.com/channel/UChpNbCvMs7-yOIYI2mH_pnw" target="_blank" title="YouTube"><i class="fab fa-youtube"></i></a>
-    <a class="icon" href="https://github.com/billybobbybrown32" target="_blank" title="GitHub"><i class="fab fa-github"></i></a>
+    <a class="icon" href="https://www.youtube.com/channel/UChpNbCvMs7-yOIYI2mH_pnw" target="_blank" title="YouTube Channel"><i class="fab fa-youtube"></i></a>
+    <a class="icon" href="https://github.com/billybobbybrown32" target="_blank" title="GitHub Profile"><i class="fab fa-github"></i></a>
   </div>
-
-  <div id="controls">
-    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
-    <button onclick="toggleSound()">Toggle Sound</button>
-  </div>
-
-  <!-- Audio -->
-  <audio id="typeSound" src="https://www.soundjay.com/mechanical/keyboard-1.mp3" preload="auto"></audio>
-  <audio id="errorSound" src="https://www.soundjay.com/button/beep-05.mp3" preload="auto"></audio>
-  <audio id="successSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-01.mp3" preload="auto"></audio>
 
   <script>
     const texts = {
@@ -105,95 +112,143 @@
     };
 
     let currentText = "";
-    let startTime = null;
-    let level = 0;
-    const maxLevels = 5;
     let currentMode = "easy";
-    let soundEnabled = true;
+    let currentLevel = 1;
+    let maxLevels = 5;
+    let startTime = null;
+    let highScore = localStorage.getItem("typingHighScore") || 0;
+    let streak = 0;
+    let totalWpm = 0;
+    let totalRuns = 0;
+    let mistakes = 0;
+    let wpmHistory = [];
 
     const inputBox = document.getElementById("inputBox");
-    const prompt = document.getElementById("prompt");
     const result = document.getElementById("result");
     const wpmDisplay = document.getElementById("wpm");
+    const accuracyDisplay = document.getElementById("accuracy");
+    const mistakesDisplay = document.getElementById("mistakes");
+    const levelDisplay = document.getElementById("level");
     const highScoreDisplay = document.getElementById("highScore");
+    const highlightBox = document.getElementById("highlighted");
+    const avgWpmDisplay = document.getElementById("avgWpm");
+    const streakDisplay = document.getElementById("streak");
+    const chartCanvas = document.getElementById("wpmChart");
+
+    let chart = new Chart(chartCanvas, {
+      type: 'line',
+      data: {
+        labels: [],
+        datasets: [{
+          label: 'WPM History',
+          data: [],
+          borderColor: 'blue',
+          fill: false
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+
+    highScoreDisplay.innerText = `High Score: ${highScore} WPM`;
 
     function start() {
-      level = 1;
       currentMode = document.getElementById("mode").value;
-      loadNextLevel();
+      currentLevel = 1;
+      streak = 0;
+      totalWpm = 0;
+      totalRuns = 0;
+      levelDisplay.innerText = `Level: ${currentLevel}`;
+      streakDisplay.innerText = `Perfect Streak: ${streak}`;
+      loadNewPhrase();
     }
 
-    function loadNextLevel() {
+    function loadNewPhrase() {
       const options = texts[currentMode];
       currentText = options[Math.floor(Math.random() * options.length)];
-      prompt.innerText = `Level ${level}: ${currentText}`;
+      document.getElementById("prompt").innerText = currentText;
+      highlightBox.innerHTML = "";
       inputBox.value = "";
       inputBox.disabled = false;
       inputBox.focus();
       result.innerText = "";
       wpmDisplay.innerText = "";
+      accuracyDisplay.innerText = "";
+      mistakesDisplay.innerText = "";
+      mistakes = 0;
       startTime = new Date();
     }
 
     function checkTyping() {
       const input = inputBox.value;
+      let correctChars = 0;
+      let display = "";
 
-      if (soundEnabled && input.length > 0 && currentText.startsWith(input)) {
-        document.getElementById("typeSound").play();
+      for (let i = 0; i < currentText.length; i++) {
+        if (i < input.length) {
+          if (input[i] === currentText[i]) {
+            display += `<span class='correct'>${currentText[i]}</span>`;
+            correctChars++;
+          } else {
+            display += `<span class='wrong'>${currentText[i]}</span>`;
+            mistakes++;
+          }
+        } else {
+          display += currentText[i];
+        }
       }
+
+      highlightBox.innerHTML = display;
+      const accuracy = ((correctChars / input.length) * 100).toFixed(1);
+      accuracyDisplay.innerText = isNaN(accuracy) ? "" : `Accuracy: ${accuracy}%`;
+      mistakesDisplay.innerText = `Mistakes: ${mistakes}`;
 
       if (input === currentText) {
         const endTime = new Date();
         const timeTaken = (endTime - startTime) / 1000 / 60;
         const wordCount = currentText.trim().split(/\s+/).length;
         const wpm = Math.round(wordCount / timeTaken);
-        inputBox.disabled = true;
         result.style.color = "green";
         result.innerText = "Correct! ✅";
         wpmDisplay.innerText = `WPM: ${wpm}`;
-        if (soundEnabled) document.getElementById("successSound").play();
+        inputBox.disabled = true;
 
-        // High Score
-        const storedHigh = localStorage.getItem("highWPM") || 0;
-        if (wpm > storedHigh) {
-          localStorage.setItem("highWPM", wpm);
-          highScoreDisplay.innerText = `🎉 New High Score: ${wpm} WPM!`;
-        } else {
-          highScoreDisplay.innerText = `🏆 High Score: ${storedHigh} WPM`;
+        if (wpm > highScore) {
+          highScore = wpm;
+          localStorage.setItem("typingHighScore", highScore);
+          highScoreDisplay.innerText = `High Score: ${highScore} WPM`;
         }
 
-        if (level < maxLevels) {
-          level++;
-          setTimeout(loadNextLevel, 1500);
-        } else {
-          prompt.innerText = "🎉 You completed all levels!";
-        }
-      } else if (currentText.startsWith(input)) {
-        result.style.color = "blue";
-        result.innerText = "Keep going...";
-      } else {
-        result.style.color = "red";
-        result.innerText = "Mistake!";
-        if (soundEnabled) document.getElementById("errorSound").play();
+        streak = (mistakes === 0) ? streak + 1 : 0;
+        streakDisplay.innerText = `Perfect Streak: ${streak}`;
+
+        totalWpm += wpm;
+        totalRuns++;
+        avgWpmDisplay.innerText = `Average WPM: ${(totalWpm / totalRuns).toFixed(1)}`;
+
+        wpmHistory.push(wpm);
+        chart.data.labels.push(totalRuns);
+        chart.data.datasets[0].data = wpmHistory;
+        chart.update();
+
+        setTimeout(() => {
+          if (currentLevel < maxLevels) {
+            currentLevel++;
+            levelDisplay.innerText = `Level: ${currentLevel}`;
+            loadNewPhrase();
+          } else {
+            alert("🏁 You completed all levels!");
+            inputBox.disabled = true;
+          }
+        }, 800);
       }
     }
 
     function toggleDarkMode() {
       document.body.classList.toggle("dark");
     }
-
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      alert("Sound " + (soundEnabled ? "Enabled" : "Disabled"));
-    }
-
-    // Show stored high score on load
-    window.onload = () => {
-      const stored = localStorage.getItem("highWPM");
-      if (stored) {
-        highScoreDisplay.innerText = `🏆 High Score: ${stored} WPM`;
-      }
-    };
   </script>
 </body>
 </html>
