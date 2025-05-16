@@ -66,6 +66,77 @@
       margin-top: 30px;
       max-width: 600px;
     }
+
+    /* Cheat menu styling */
+    #cheatMenuWrapper {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 9999;
+      font-family: Arial, sans-serif;
+      user-select: none;
+    }
+    #cheatMenuButton {
+      background-color: #0077ff;
+      color: white;
+      padding: 10px 16px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 0 6px rgba(0, 119, 255, 0.7);
+      transition: background-color 0.3s;
+    }
+    #cheatMenuButton:hover {
+      background-color: #005fcc;
+    }
+    #cheatMenuPanel {
+      margin-top: 8px;
+      background: var(--box-bg);
+      border: 1px solid #999;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      padding: 10px;
+      width: 260px;
+      color: var(--text-color);
+      display: none;
+      text-align: left;
+    }
+    #cheatMenuWrapper:hover #cheatMenuPanel {
+      display: block;
+    }
+    #cheatMenuPanel button {
+      width: 100%;
+      margin: 5px 0;
+      padding: 8px;
+      background-color: #0077ff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+    #cheatMenuPanel button:hover {
+      background-color: #005fcc;
+    }
+
+    /* Dev Console Link styling */
+    #devConsole {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #555;
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+    }
+    #devConsole a {
+      color: #0077ff;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    #devConsole a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body>
@@ -102,6 +173,20 @@
     <a class="icon" href="https://github.com/billybobbybrown32" target="_blank" title="GitHub Profile"><i class="fab fa-github"></i></a>
   </div>
 
+  <!-- Cheat Menu -->
+  <div id="cheatMenuWrapper">
+    <button id="cheatMenuButton">Cheat Menu</button>
+    <div id="cheatMenuPanel">
+      <button onclick="TypingCheat.autoType()">Auto Type</button>
+      <button onclick="TypingCheat.speedBoost(150)">Speed Boost 150 WPM</button>
+      <button onclick="TypingCheat.showDebug()">Show Debug Info</button>
+      <button onclick="TypingCheat.resetStats()">Reset Stats</button>
+      <div id="devConsole">
+        Dev Console by <a href="https://github.com/billybobbybrown32" target="_blank" rel="noopener noreferrer">billybobbybrown32</a>
+      </div>
+    </div>
+  </div>
+
   <script>
     const texts = {
       easy: ["cat", "dog", "fish", "tree", "milk"],
@@ -133,122 +218,4 @@
     const highlightBox = document.getElementById("highlighted");
     const avgWpmDisplay = document.getElementById("avgWpm");
     const streakDisplay = document.getElementById("streak");
-    const chartCanvas = document.getElementById("wpmChart");
-
-    let chart = new Chart(chartCanvas, {
-      type: 'line',
-      data: {
-        labels: [],
-        datasets: [{
-          label: 'WPM History',
-          data: [],
-          borderColor: 'blue',
-          fill: false
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: { y: { beginAtZero: true } }
-      }
-    });
-
-    highScoreDisplay.innerText = `High Score: ${highScore} WPM`;
-
-    function start() {
-      currentMode = document.getElementById("mode").value;
-      currentLevel = 1;
-      streak = 0;
-      totalWpm = 0;
-      totalRuns = 0;
-      levelDisplay.innerText = `Level: ${currentLevel}`;
-      streakDisplay.innerText = `Perfect Streak: ${streak}`;
-      loadNewPhrase();
-    }
-
-    function loadNewPhrase() {
-      const options = texts[currentMode];
-      currentText = options[Math.floor(Math.random() * options.length)];
-      document.getElementById("prompt").innerText = currentText;
-      highlightBox.innerHTML = "";
-      inputBox.value = "";
-      inputBox.disabled = false;
-      inputBox.focus();
-      result.innerText = "";
-      wpmDisplay.innerText = "";
-      accuracyDisplay.innerText = "";
-      mistakesDisplay.innerText = "";
-      mistakes = 0;
-      startTime = new Date();
-    }
-
-    function checkTyping() {
-      const input = inputBox.value;
-      let correctChars = 0;
-      let display = "";
-
-      for (let i = 0; i < currentText.length; i++) {
-        if (i < input.length) {
-          if (input[i] === currentText[i]) {
-            display += `<span class='correct'>${currentText[i]}</span>`;
-            correctChars++;
-          } else {
-            display += `<span class='wrong'>${currentText[i]}</span>`;
-            mistakes++;
-          }
-        } else {
-          display += currentText[i];
-        }
-      }
-
-      highlightBox.innerHTML = display;
-      const accuracy = ((correctChars / input.length) * 100).toFixed(1);
-      accuracyDisplay.innerText = isNaN(accuracy) ? "" : `Accuracy: ${accuracy}%`;
-      mistakesDisplay.innerText = `Mistakes: ${mistakes}`;
-
-      if (input === currentText) {
-        const endTime = new Date();
-        const timeTaken = (endTime - startTime) / 1000 / 60;
-        const wordCount = currentText.trim().split(/\s+/).length;
-        const wpm = Math.round(wordCount / timeTaken);
-        result.style.color = "green";
-        result.innerText = "Correct! ✅";
-        wpmDisplay.innerText = `WPM: ${wpm}`;
-        inputBox.disabled = true;
-
-        if (wpm > highScore) {
-          highScore = wpm;
-          localStorage.setItem("typingHighScore", highScore);
-          highScoreDisplay.innerText = `High Score: ${highScore} WPM`;
-        }
-
-        streak = (mistakes === 0) ? streak + 1 : 0;
-        streakDisplay.innerText = `Perfect Streak: ${streak}`;
-
-        totalWpm += wpm;
-        totalRuns++;
-        avgWpmDisplay.innerText = `Average WPM: ${(totalWpm / totalRuns).toFixed(1)}`;
-
-        wpmHistory.push(wpm);
-        chart.data.labels.push(totalRuns);
-        chart.data.datasets[0].data = wpmHistory;
-        chart.update();
-
-        setTimeout(() => {
-          if (currentLevel < maxLevels) {
-            currentLevel++;
-            levelDisplay.innerText = `Level: ${currentLevel}`;
-            loadNewPhrase();
-          } else {
-            alert("🏁 You completed all levels!");
-            inputBox.disabled = true;
-          }
-        }, 800);
-      }
-    }
-
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark");
-    }
-  </script>
-</body>
-</html>
+    const chartCanvas = document.getElementById("w
