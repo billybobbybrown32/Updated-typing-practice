@@ -1,199 +1,439 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Ultimate Typing Practice</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-  <style>
-    :root {
-      --bg-color: #f0f0f0;
-      --text-color: #000;
-      --box-bg: #fff;
-    }
-    body.dark {
-      --bg-color: #121212;
-      --text-color: #f0f0f0;
-      --box-bg: #1e1e1e;
-    }
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 40px;
-      transition: background 0.3s, color 0.3s;
-    }
-    select, input, button {
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ultimate Typing Practice + Games</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+  :root {
+    --bg-color: #f0f0f0;
+    --text-color: #000;
+    --box-bg: #fff;
+    --accent-color: #0077ff;
+  }
+  body.dark {
+    --bg-color: #121212;
+    --text-color: #f0f0f0;
+    --box-bg: #1e1e1e;
+  }
+  body {
+    background: var(--bg-color);
+    color: var(--text-color);
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    transition: background 0.3s, color 0.3s;
+  }
+  h1, h2 {
+    margin: 10px 0;
+  }
+  #container {
+    max-width: 800px;
+    margin: auto;
+  }
+  select, input, button, textarea {
+    padding: 10px;
+    font-size: 16px;
+    margin: 10px 5px 10px 0;
+    background-color: var(--box-bg);
+    color: var(--text-color);
+    border: 1px solid #999;
+    border-radius: 5px;
+  }
+  button:hover {
+    cursor: pointer;
+    background-color: #ddd;
+  }
+  #prompt {
+    font-size: 24px;
+    font-weight: bold;
+    margin: 15px 0;
+    min-height: 40px;
+  }
+  #inputBox {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  #progressBarContainer {
+    width: 100%;
+    height: 20px;
+    background: #ccc;
+    border-radius: 10px;
+    margin: 10px 0 20px 0;
+    overflow: hidden;
+  }
+  #progressBar {
+    height: 100%;
+    background: var(--accent-color);
+    width: 0%;
+    transition: width 0.3s ease;
+  }
+  #result, #wpm, #highScore, #stats {
+    font-size: 18px;
+    margin: 10px 0;
+  }
+  #links {
+    margin: 30px 0;
+    text-align: center;
+  }
+  .icon {
+    font-size: 30px;
+    margin: 0 15px;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: transform 0.2s, color 0.2s;
+  }
+  .icon:hover {
+    transform: scale(1.2);
+    color: var(--accent-color);
+  }
+  #controls {
+    margin: 20px 0;
+  }
+  #leaderboard {
+    margin: 20px 0;
+    text-align: left;
+  }
+  #customText {
+    width: 100%;
+    height: 80px;
+  }
+  /* Mistake highlighting styles */
+  #prompt span.correct {
+    color: green;
+  }
+  #prompt span.incorrect {
+    color: red;
+    text-decoration: underline;
+  }
+  /* Responsive */
+  @media (max-width: 600px) {
+    #container {
       padding: 10px;
-      font-size: 16px;
-      margin: 10px;
-      background-color: var(--box-bg);
-      color: var(--text-color);
-      border: 1px solid #999;
-      border-radius: 5px;
-    }
-    #prompt {
-      margin-top: 20px;
-      font-size: 24px;
-      font-weight: bold;
-    }
-    #result, #wpm, #highScore {
-      margin-top: 15px;
-      font-size: 18px;
-    }
-    #links {
-      margin-top: 40px;
     }
     .icon {
-      font-size: 30px;
-      margin: 0 15px;
-      color: var(--text-color);
-      text-decoration: none;
-      transition: transform 0.2s, color 0.2s;
+      font-size: 24px;
+      margin: 0 10px;
     }
-    .icon:hover {
-      transform: scale(1.2);
-      color: #0077ff;
-    }
-    #controls {
-      margin-top: 20px;
-    }
-  </style>
+  }
+  /* Font & Theme selectors */
+  #themeSelector, #fontSelector {
+    margin-left: 5px;
+  }
+
+  /* Password screen styles */
+  #loginScreen {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--box-bg);
+    color: var(--text-color);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  #loginScreen input {
+    font-size: 18px;
+    padding: 10px;
+    width: 250px;
+    margin: 10px 0;
+  }
+  #loginScreen button {
+    font-size: 18px;
+    padding: 10px 20px;
+  }
+  #loginError {
+    color: red;
+    font-weight: bold;
+  }
+</style>
 </head>
 <body>
-  <h1>Ultimate Typing Practice</h1>
 
-  <label for="mode">Choose Difficulty:</label>
-  <select id="mode">
-    <option value="easy">Easy</option>
-    <option value="normal">Normal</option>
-    <option value="hard">Hard</option>
-    <option value="veryhard">Very Hard</option>
-    <option value="impossible">Impossible</option>
-  </select>
-  <button onclick="start()">Start</button>
+<!-- Password Login Screen -->
+<div id="loginScreen" aria-label="Password Login Screen">
+  <h2>Enter Password to Access</h2>
+  <input type="password" id="passwordInput" placeholder="Password" aria-label="Password Input" />
+  <button id="loginBtn">Login</button>
+  <div id="loginError" role="alert" aria-live="assertive"></div>
+</div>
 
-  <div id="prompt"></div>
-  <input type="text" id="inputBox" placeholder="Start typing here..." oninput="checkTyping()" disabled>
+<div id="container" hidden>
+  <h1>Ultimate Typing Practice + Games</h1>
+
+  <div>
+    <label for="mode">Difficulty:</label>
+    <select id="mode">
+      <option value="easy">Easy</option>
+      <option value="normal">Normal</option>
+      <option value="hard">Hard</option>
+      <option value="veryhard">Very Hard</option>
+      <option value="impossible">Impossible</option>
+      <option value="all">All of the Above (Owner/Dev/Mod only)</option>
+    </select>
+
+    <label for="timerMode">Timer Mode:</label>
+    <input type="checkbox" id="timerMode" checked />
+  </div>
+
+  <div>
+    <label for="customText">Custom Text (optional):</label><br />
+    <textarea id="customText" placeholder="Paste or type your own practice text here..."></textarea>
+  </div>
+
+  <button id="startBtn">Start</button>
+  <button id="resetBtn" disabled>Reset</button>
+
+  <div id="progressBarContainer" aria-label="Progress Bar">
+    <div id="progressBar"></div>
+  </div>
+
+  <div id="prompt" aria-live="polite"></div>
+  <input
+    type="text"
+    id="inputBox"
+    placeholder="Start typing here..."
+    disabled
+    aria-label="Typing input"
+    autocomplete="off"
+  />
+
   <div id="result"></div>
   <div id="wpm"></div>
   <div id="highScore"></div>
+  <div id="stats"></div>
+
+  <div id="leaderboard">
+    <h2>🏆 Leaderboard (Top 5 WPM)</h2>
+    <ol id="leaderboardList"></ol>
+  </div>
 
   <div id="links">
-    <a class="icon" href="https://discord.gg/aMaPgt3Z" target="_blank" title="Join Discord"><i class="fab fa-discord"></i></a>
-    <a class="icon" href="https://www.youtube.com/channel/UChpNbCvMs7-yOIYI2mH_pnw" target="_blank" title="YouTube"><i class="fab fa-youtube"></i></a>
-    <a class="icon" href="https://github.com/billybobbybrown32" target="_blank" title="GitHub"><i class="fab fa-github"></i></a>
+    <a class="icon" href="https://discord.gg/aMaPgt3Z" target="_blank" title="Join Discord" aria-label="Discord">
+      <i class="fab fa-discord"></i>
+    </a>
+    <a class="icon" href="https://www.youtube.com/channel/UChpNbCvMs7-yOIYI2mH_pnw" target="_blank" title="YouTube" aria-label="YouTube">
+      <i class="fab fa-youtube"></i>
+    </a>
+    <a class="icon" href="https://github.com/billybobbybrown32" target="_blank" title="GitHub" aria-label="GitHub">
+      <i class="fab fa-github"></i>
+    </a>
   </div>
 
   <div id="controls">
-    <button onclick="toggleDarkMode()">Toggle Dark Mode</button>
-    <button onclick="toggleSound()">Toggle Sound</button>
+    <button id="toggleDarkBtn">Toggle Dark Mode</button>
+    <button id="toggleSoundBtn">Toggle Sound</button>
+    <label for="themeSelector">Theme:</label>
+    <select id="themeSelector">
+      <option value="default">Default</option>
+      <option value="solarized">Solarized</option>
+      <option value="pastel">Pastel</option>
+    </select>
+    <label for="fontSelector">Font:</label>
+    <select id="fontSelector">
+      <option value="Arial, sans-serif">Arial</option>
+      <option value="'Courier New', Courier, monospace">Courier New</option>
+      <option value="'Comic Sans MS', cursive">Comic Sans MS</option>
+      <option value="'Times New Roman', serif">Times New Roman</option>
+    </select>
   </div>
 
-  <!-- Audio -->
-  <audio id="typeSound" src="https://www.soundjay.com/mechanical/keyboard-1.mp3" preload="auto"></audio>
-  <audio id="errorSound" src="https://www.soundjay.com/button/beep-05.mp3" preload="auto"></audio>
-  <audio id="successSound" src="https://www.soundjay.com/misc/sounds/bell-ringing-01.mp3" preload="auto"></audio>
+  <h2>Typing Mini-Game: Falling Words (Demo)</h2>
+  <canvas id="fallingWordsCanvas" width="760" height="150" style="border:1px solid #ccc; background: var(--box-bg);"></canvas>
+  <input type="text" id="fallingInput" placeholder="Type falling words here..." disabled />
+</div>
 
-  <script>
-    const texts = {
-      easy: ["cat", "dog", "fish", "tree", "milk"],
-      normal: ["running fast", "happy birthday", "simple words here"],
-      hard: ["complexity arises", "JavaScript functions", "accuracy matters"],
-      veryhard: ["Unexpectedly, the knight returned!", "Quantum mechanics isn't easy."],
-      impossible: ["Pseudopseudohypoparathyroidism perplexes practitioners particularly persistently."]
-    };
+<script>
+  // === Password & Access Control ===
+  const loginScreen = document.getElementById("loginScreen");
+  const container = document.getElementById("container");
+  const loginBtn = document.getElementById("loginBtn");
+  const passwordInput = document.getElementById("passwordInput");
+  const loginError = document.getElementById("loginError");
+  const modeSelect = document.getElementById("mode");
 
-    let currentText = "";
-    let startTime = null;
-    let level = 0;
-    const maxLevels = 5;
-    let currentMode = "easy";
-    let soundEnabled = true;
+  let isAuthorized = false;
 
-    const inputBox = document.getElementById("inputBox");
-    const prompt = document.getElementById("prompt");
-    const result = document.getElementById("result");
-    const wpmDisplay = document.getElementById("wpm");
-    const highScoreDisplay = document.getElementById("highScore");
-
-    function start() {
-      level = 1;
-      currentMode = document.getElementById("mode").value;
-      loadNextLevel();
+  loginBtn.addEventListener("click", () => {
+    const pw = passwordInput.value.trim();
+    if (pw === "skids") {
+      isAuthorized = true;
+      loginScreen.style.display = "none";
+      container.hidden = false;
+      loginError.textContent = "";
+      passwordInput.value = "";
+      checkModeAccess();
+    } else {
+      loginError.textContent = "Incorrect password! Try again.";
     }
+  });
 
-    function loadNextLevel() {
-      const options = texts[currentMode];
-      currentText = options[Math.floor(Math.random() * options.length)];
-      prompt.innerText = `Level ${level}: ${currentText}`;
-      inputBox.value = "";
-      inputBox.disabled = false;
-      inputBox.focus();
-      result.innerText = "";
-      wpmDisplay.innerText = "";
-      startTime = new Date();
+  // Prevent selecting "all" mode without auth
+  modeSelect.addEventListener("change", () => {
+    checkModeAccess();
+  });
+
+  function checkModeAccess() {
+    if (modeSelect.value === "all" && !isAuthorized) {
+      alert("Access to 'All of the Above' mode is restricted to Owners/Devs/Mods.");
+      modeSelect.value = "easy";
     }
+  }
 
-    function checkTyping() {
-      const input = inputBox.value;
+  // === Typing Modes Data ===
+  const textsByMode = {
+    easy: [
+      "cat",
+      "dog",
+      "fish",
+      "tree",
+      "milk",
+      "sun is shining",
+      "hello world",
+      "blue sky",
+      "red apple",
+      "fast car",
+    ],
+    normal: [
+      "running fast",
+      "happy birthday",
+      "simple words here",
+      "open the door",
+      "walk in the park",
+      "bright sunny day",
+      "coffee is hot",
+      "reading a book",
+      "turn off the light",
+      "play the game",
+    ],
+    hard: [
+      "complexity arises",
+      "JavaScript functions",
+      "accuracy matters",
+      "understand the code",
+      "debugging is fun",
+      "challenge your mind",
+      "practice every day",
+      "never give up",
+      "push your limits",
+      "learn and grow",
+    ],
+    veryhard: [
+      "Unexpectedly, the knight returned!",
+      "Quantum mechanics isn't easy.",
+      "Pseudocode simplifies logic.",
+      "Artificial intelligence evolves rapidly.",
+      "Cryptography protects data privacy.",
+      "Neural networks mimic brains.",
+      "Optimization improves efficiency.",
+      "Asynchronous programming awaits results.",
+      "Design patterns guide software structure.",
+      "Recursive functions call themselves.",
+    ],
+    impossible: [
+      "Pseudopseudohypoparathyroidism perplexes practitioners particularly persistently.",
+      "Floccinaucinihilipilification is the estimation of something as worthless.",
+      "Antidisestablishmentarianism was a 19th-century political movement.",
+      "Supercalifragilisticexpialidocious is a nonsense word.",
+      "Hippopotomonstrosesquipedaliophobia ironically means fear of long words.",
+    ],
+  };
 
-      if (soundEnabled && input.length > 0 && currentText.startsWith(input)) {
-        document.getElementById("typeSound").play();
-      }
+  // Combine all modes for "all" mode
+  textsByMode.all = Object.values(textsByMode)
+    .flat()
+    .filter((v, i, a) => a.indexOf(v) === i); // Unique
 
-      if (input === currentText) {
-        const endTime = new Date();
-        const timeTaken = (endTime - startTime) / 1000 / 60;
-        const wordCount = currentText.trim().split(/\s+/).length;
-        const wpm = Math.round(wordCount / timeTaken);
-        inputBox.disabled = true;
-        result.style.color = "green";
-        result.innerText = "Correct! ✅";
-        wpmDisplay.innerText = `WPM: ${wpm}`;
-        if (soundEnabled) document.getElementById("successSound").play();
+  // === Variables ===
+  let currentText = "";
+  let startTime = null;
+  let timerInterval = null;
+  let countdown = 60;
+  let level = 1;
+  const maxLevels = 5;
+  let currentMode = "easy";
+  let soundEnabled = true;
+  let timerModeEnabled = true;
 
-        // High Score
-        const storedHigh = localStorage.getItem("highWPM") || 0;
-        if (wpm > storedHigh) {
-          localStorage.setItem("highWPM", wpm);
-          highScoreDisplay.innerText = `🎉 New High Score: ${wpm} WPM!`;
-        } else {
-          highScoreDisplay.innerText = `🏆 High Score: ${storedHigh} WPM`;
-        }
+  const inputBox = document.getElementById("inputBox");
+  const prompt = document.getElementById("prompt");
+  const result = document.getElementById("result");
+  const wpmDisplay = document.getElementById("wpm");
+  const highScoreDisplay = document.getElementById("highScore");
+  const statsDisplay = document.getElementById("stats");
+  const progressBar = document.getElementById("progressBar");
+  const startBtn = document.getElementById("startBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const timerCheckbox = document.getElementById("timerMode");
+  const customTextArea = document.getElementById("customText");
+  const toggleDarkBtn = document.getElementById("toggleDarkBtn");
+  const toggleSoundBtn = document.getElementById("toggleSoundBtn");
+  const themeSelector = document.getElementById("themeSelector");
+  const fontSelector = document.getElementById("fontSelector");
+  const leaderboardList = document.getElementById("leaderboardList");
 
-        if (level < maxLevels) {
-          level++;
-          setTimeout(loadNextLevel, 1500);
-        } else {
-          prompt.innerText = "🎉 You completed all levels!";
-        }
-      } else if (currentText.startsWith(input)) {
-        result.style.color = "blue";
-        result.innerText = "Keep going...";
-      } else {
-        result.style.color = "red";
-        result.innerText = "Mistake!";
-        if (soundEnabled) document.getElementById("errorSound").play();
-      }
+  // Sound files (public domain/free)
+  const sounds = {
+    type: new Audio("https://www.soundjay.com/mechanical/keyboard-1.mp3"),
+    error: new Audio("https://www.soundjay.com/button/beep-05.mp3"),
+    success: new Audio("https://www.soundjay.com/misc/sounds/bell-ringing-01.mp3"),
+  };
+
+  // === Helper Functions ===
+
+  function playSound(type) {
+    if (!soundEnabled) return;
+    const sound = sounds[type];
+    if (!sound) return;
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+  }
+
+  // Show high score on load
+  function loadHighScore() {
+    const high = localStorage.getItem("highWPM") || 0;
+    if (high > 0) highScoreDisplay.textContent = `🏆 High Score: ${high} WPM`;
+    else highScoreDisplay.textContent = "🏆 No High Score Yet";
+  }
+
+  // Leaderboard save/load
+  function loadLeaderboard() {
+    const data = localStorage.getItem("leaderboard");
+    if (!data) {
+      leaderboardList.innerHTML = "<li>No scores yet.</li>";
+      return;
     }
-
-    function toggleDarkMode() {
-      document.body.classList.toggle("dark");
+    const scores = JSON.parse(data);
+    if (scores.length === 0) {
+      leaderboardList.innerHTML = "<li>No scores yet.</li>";
+      return;
     }
+    leaderboardList.innerHTML = "";
+    scores
+      .sort((a, b) => b.wpm - a.wpm)
+      .slice(0, 5)
+      .forEach((score) => {
+        const li = document.createElement("li");
+        li.textContent = `${score.name || "Anonymous"} - ${score.wpm} WPM`;
+        leaderboardList.appendChild(li);
+      });
+  }
 
-    function toggleSound() {
-      soundEnabled = !soundEnabled;
-      alert("Sound " + (soundEnabled ? "Enabled" : "Disabled"));
-    }
+  function saveScore(wpm) {
+    const name = prompt("Enter your name for the leaderboard:") || "Anonymous";
+    const data = localStorage.getItem("leaderboard");
+    let scores = data ? JSON.parse(data) : [];
+    scores.push({ name, wpm });
+    localStorage.setItem("leaderboard", JSON.stringify(scores));
+    loadLeaderboard();
+  }
 
-    // Show stored high score on load
-    window.onload = () => {
-      const stored = localStorage.getItem("highWPM");
-      if (stored) {
-        highScoreDisplay.innerText = `🏆 High Score: ${stored} WPM`;
-      }
-    };
-  </script>
-</body>
-</html>
+  // Display prompt with highlighting for mistakes
+  function displayPromptWithHighlight(userInput) {
+    prompt.innerHTML = "";
+    for (let i = 0; i < currentText.length; i++) {
+      const span = document.createElement("span");
+      span.textContent = currentText[i];
+      if (userInput[i] == null
