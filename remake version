@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Typing Practice - All Phases</title>
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+/>
+<style>
+  :root {
+    --bg-color: #f0f0f0;
+    --text-color: #000;
+    --box-bg: #fff;
+    --correct-color: green;
+    --wrong-color: red;
+  }
+  body.dark {
+    --bg-color: #121212;
+    --text-color: #f0f0f0;
+    --box-bg: #1e1e1e;
+  }
+  body.rainbow {
+    --correct-color: #ff0055;
+    --wrong-color: #00ffff;
+    background: linear-gradient(135deg, #f06, #0ff, #f90);
+    background-size: 400% 400%;
+    animation: rainbowBG 15s ease infinite;
+  }
+  @keyframes rainbowBG {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: Arial, sans-serif;
+    text-align: center;
+    padding: 40px 20px;
+    transition: background 0.3s, color 0.3s;
+    min-height: 100vh;
+    box-sizing: border-box;
+  }
+  select,
+  input,
+  button {
+    padding: 10px;
+    font-size: 16px;
+    margin: 8px 10px;
+    background-color: var(--box-bg);
+    color: var(--text-color);
+    border: 1px solid #999;
+    border-radius: 5px;
+    outline-offset: 2px;
+    outline-color: #0077ff;
+    transition: background 0.3s, color 0.3s;
+  }
+  #prompt,
+  #highlighted {
+    margin-top: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    min-height: 40px;
+    user-select: none;
+    white-space: pre-wrap;
+  }
+  .correct {
+    color: var(--correct-color);
+  }
+  .wrong {
+    color: var(--wrong-color);
+  }
+  #result,
+  #wpm,
+  #highScore,
+  #level,
+  #accuracy,
+  #mistakes,
+  #streak,
+  #averageWpm {
+    margin-top: 10px;
+    font-size: 18px;
+  }
+  #links {
+    margin-top: 40px;
+  }
+  .icon {
+    font-size: 30px;
+    margin: 0 15px;
+    color: var(--text-color);
+    text-decoration: none;
+    transition: transform 0.2s, color 0.2s;
+  }
+  .icon:hover {
+    transform: scale(1.2);
+    color: #0077ff;
+  }
+  #toggleDark,
+  #toggleRainbow,
+  #toggleStrict,
+  #fontSelect,
+  #tryAgain {
+    margin-top: 20px;
+    cursor: pointer;
+  }
+  #tryAgain {
+    padding: 8px 18px;
+    font-weight: bold;
+  }
+  #chartContainer {
+    margin-top: 30px;
+    width: 90%;
+    max-width: 700px;
+    height: 150px;
+    margin-left: auto;
+    margin-right: auto;
+    background: var(--box-bg);
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    padding: 10px;
+  }
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+  /* Responsive */
+  @media (max-width: 600px) {
+    #prompt,
+    #highlighted {
+      font-size: 20px;
+    }
+    select,
+    input,
+    button {
+      font-size: 14px;
+      padding: 8px;
+    }
+    .icon {
+      font-size: 24px;
+      margin: 0 10px;
+    }
+  }
+</style>
+</head>
+<body>
+  <h1>Typing Practice</h1>
+
+  <div>
+    <label for="mode">Choose Difficulty:</label>
+    <select id="mode">
+      <option value="easy">Easy</option>
+      <option value="normal">Normal</option>
+      <option value="hard">Hard</option>
+      <option value="veryhard">Very Hard</option>
+      <option value="impossible">Impossible</option>
+    </select>
+
+    <label for="fontSelect">Font:</label>
+    <select id="fontSelect">
+      <option value="Arial, sans-serif">Default</option>
+      <option value="'Courier New', Courier, monospace">Monospace</option>
+      <option value="'Times New Roman', serif">Serif</option>
+      <option value="'Comic Sans MS', cursive">Comic Sans</option>
+    </select>
+  </div>
+
+  <div>
+    <button onclick="start()">Start</button>
+    <button id="tryAgain" onclick="tryAgain()" disabled>Try Again</button>
+  </div>
+
+  <div>
+    <label><input type="checkbox" id="strictMode" /> Strict Mode</label>
+  </div>
+
+  <div>
+    <button id="toggleDark" onclick="toggleDarkMode()">Toggle Dark Mode</button>
+    <button id="toggleRainbow" onclick="toggleRainbowMode()">Toggle Rainbow Mode</button>
+  </div>
+
+  <div id="highScore">High Score: -- WPM</div>
+  <div id="level">Level: 1</div>
+  <div id="streak">Perfect Streak: 0</div>
+  <div id="averageWpm">Average WPM: --</div>
+
+  <div id="prompt"></div>
+  <div id="highlighted"></div>
+
+  <input
+    type="text"
+    id="inputBox"
+    placeholder="Start typing here..."
+    oninput="checkTyping()"
+    disabled
+    autocomplete="off"
+    autocorrect="off"
+    autocapitalize="off"
+    spellcheck="false"
+  />
+
+  <div id="result"></div>
+  <div id="wpm"></div>
+  <div id="accuracy"></div>
+  <div id="mistakes"></div>
+
+  <div id="chartContainer" title="WPM History">
+    <svg id="wpmChart" viewBox="0 0 600 150"></svg>
+  </div>
+
+  <div id="links">
+    <a
+      class="icon"
+      href="https://discord.gg/aMaPgt3Z"
+      target="_blank"
+      title="Join Discord"
+      ><i class="fab fa-discord"></i
+    ></a>
+    <a
+      class="icon"
+      href="https://www.youtube.com/channel/UChpNbCvMs7-yOIYI2mH_pnw"
+      target="_blank"
+      title="YouTube Channel"
+      ><i class="fab fa-youtube"></i
+    ></a>
+    <a
+      class="icon"
+      href="https://github.com/billybobbybrown32"
+      target="_blank"
+      title="GitHub Profile"
+      ><i class="fab fa-github"></i
+    ></a>
+  </div>
+
+  <script>
+    const texts = {
+      easy: ["cat", "dog", "fish", "tree", "milk"],
+      normal: [
+        "running fast",
+        "happy birthday",
+        "simple words here",
+        "practice makes perfect",
+        "typing is fun",
+      ],
+      hard: [
+        "complexity arises",
+        "JavaScript functions",
+        "accuracy matters",
+        "persistent practice pays off",
+        "challenge your limits",
+      ],
+      veryhard: [
+        "Unexpectedly, the knight returned!",
+        "Quantum mechanics isn't easy.",
+        "Phenomenon of linguistic evolution",
+        "Cryptography and cybersecurity",
+        "Exquisite typographic arrangement",
+      ],
+      impossible: [
+        "Pseudopseudohypoparathyroidism perplexes practitioners particularly persistently.",
+        "Supercalifragilisticexpialidocious is a long word.",
+        "Floccinaucinihilipilification is rarely used.",
+        "Hippopotomonstrosesquipedaliophobia ironically means fear of long words.",
+        "Antidisestablishmentarianism is often cited.",
+      ],
+    };
+
+    let currentText = "";
+    let currentMode = "easy";
+    let currentLevel = 1;
+    const maxLevels = 5;
+    let startTime = null;
+    let highScore = Number(localStorage.getItem("typingHighScore")) || 0;
+    let mistakes = 0;
+    let perfectStreak = 0;
+    let wpmHistory = [];
+    let inputDisabled = true;
+
+    const inputBox = document.getElementById("inputBox");
+    const result = document.getElementById("result");
+    const wpmDisplay = document.getElementById("wpm");
+    const accuracyDisplay = document.getElementById("accuracy");
+    const mistakesDisplay = document.getElementById("mistakes");
+    const levelDisplay = document.getElementById("level");
+    const highScoreDisplay = document.getElementById("highScore");
+    const highlightBox = document.getElementById("highlighted");
+    const streakDisplay = document.getElementById("streak");
+    const averageWpmDisplay = document.getElementById("averageWpm");
+    const fontSelect = document.getElementById("fontSelect");
+
+    let strictMode = false;
+
+    highScoreDisplay.innerText = `High Score: ${highScore} WPM`;
+
+    document.getElementById("mode").addEventListener("change", (e) => {
+      currentMode = e.target.value;
+    });
+
+    document.getElementById("strictMode").addEventListener("change", (e) => {
+      strictMode = e.target.checked;
+    });
+
+    fontSelect.addEventListener("change", () => {
+      document.body.style.fontFamily = fontSelect.value;
+    });
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark");
+    }
+    function toggleRainbowMode() {
+      document.body.classList.toggle("rainbow");
+    }
+
+    function getRandomText() {
+      const list = texts[currentMode];
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    function start() {
+      currentText = getRandomText();
+      inputBox.value = "";
+      inputBox.disabled = false;
+      inputBox.focus();
+      mistakes = 0;
+      result.innerText = "";
+      wpmDisplay.innerText = "";
+      accuracyDisplay.innerText = "";
+      mistakesDisplay.innerText = "";
+      highlightBox.innerHTML = "";
+      startTime = new Date();
+      inputDisabled = false;
+      document.getElementById("tryAgain").disabled = true;
+      drawTextHighlight("");
+    }
+
+    function drawTextHighlight(typed) {
+      let html = "";
+      for (let i = 0; i < currentText.length; i++) {
+        let char = currentText[i];
+        if (i < typed.length) {
+          if (typed[i] === char) {
+            html += `<span class="correct">${char}</span>`;
+          } else {
+            html += `<span class="wrong">${char}</span>`;
+          }
+        } else {
+          html += char;
+        }
+      }
+      highlightBox.innerHTML = html;
+    }
+
+    function checkTyping() {
+      if (inputDisabled) return;
+
+      const typed = inputBox.value;
+      drawTextHighlight(typed);
+
+      if (typed.length === 0) {
+        mistakesDisplay.innerText = `Mistakes: 0`;
+        accuracyDisplay.innerText = "";
+        return;
+      }
+
+      mistakes = 0;
+      for (let i = 0; i < typed.length; i++) {
+        if (typed[i] !== currentText[i]) {
+          mistakes++;
+          if (strictMode) {
+            // Remove last character typed in strict mode immediately on mistake
+            inputBox.value = typed.slice(0, -1);
+            mistakes--;
+            return;
+          }
+        }
+      }
+
+      mistakesDisplay.innerText = `Mistakes: ${mistakes}`;
+      const accuracy = (
+        ((typed.length - mistakes) / typed.length) *
+        100
+      ).toFixed(2);
+      accuracyDisplay.innerText = `Accuracy: ${accuracy}%`;
+
+      if (typed === currentText) {
+        finishTyping();
+      }
+    }
+
+    function finishTyping() {
+      inputDisabled = true;
+      inputBox.disabled = true;
+      document.getElementById("tryAgain").disabled = false;
+
+      const endTime = new Date();
+      const timeMinutes = (endTime - startTime) / 60000;
+      const wordCount = currentText.split(" ").length;
+      const wpm = Math.round(wordCount / timeMinutes);
+
+      // Anti-cheat check
+      if (wpm > 400) {
+        alert("Stop cheating you little skid!");
+        location.reload();
+        return;
+      }
+
+      wpmDisplay.innerText = `WPM: ${wpm}`;
+
+      if (wpm > highScore) {
+        highScore = wpm;
+        localStorage.setItem("typingHighScore", highScore);
+        highScoreDisplay.innerText = `High Score: ${highScore} WPM 🎉`;
+      }
+
+      if (mistakes === 0) {
+        perfectStreak++;
+      } else {
+        perfectStreak = 0;
+      }
+      streakDisplay.innerText = `Perfect Streak: ${perfectStreak}`;
+
+      // Level up every 3 perfect streaks or every completion with mistakes
+      if (perfectStreak > 0 && perfectStreak % 3 === 0) {
+        if (currentLevel < maxLevels) {
+          currentLevel++;
+          levelDisplay.innerText = `Level: ${currentLevel}`;
+          result.innerText = "Level Up! 🎉";
+        }
+      }
+
+      wpmHistory.push(wpm);
+      updateAverageWPM();
+      drawWPMChart();
+    }
+
+    function tryAgain() {
+      if (!inputDisabled) return;
+      start();
+    }
+
+    function updateAverageWPM() {
+      if (wpmHistory.length === 0) {
+        averageWpmDisplay.innerText = "Average WPM: --";
+        return;
+      }
+      const sum = wpmHistory.reduce((a, b) => a + b, 0);
+      const avg = (sum / wpmHistory.length).toFixed(2);
+      averageWpmDisplay.innerText = `Average WPM: ${avg}`;
+    }
+
+    function drawWPMChart() {
+      const svg = document.getElementById("wpmChart");
+      svg.innerHTML = "";
+      if (wpmHistory.length === 0) return;
+
+      const maxWpm = Math.max(...wpmHistory, 100);
+      const padding = 30;
+      const width = 600;
+      const height = 150;
+      const stepX = (width - padding * 2) / (wpmHistory.length - 1);
+
+      // Draw axes
+      const axisColor = getComputedStyle(document.body).getPropertyValue("--text-color");
+      const axisLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      axisLine.setAttribute("x1", padding);
+      axisLine.setAttribute("y1", height - padding);
+      axisLine.setAttribute("x2", width - padding);
+      axisLine.setAttribute("y2", height - padding);
+      axisLine.setAttribute("stroke", axisColor);
+      axisLine.setAttribute("stroke-width", 2);
+      svg.appendChild(axisLine);
+
+      // Draw points and lines
+      let prevX = null,
+        prevY = null;
+      for (let i = 0; i < wpmHistory.length; i++) {
+        const x = padding + stepX * i;
+        const y = height - padding - (wpmHistory[i] / maxWpm) * (height - padding * 2);
+        const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        circle.setAttribute("cx", x);
+        circle.setAttribute("cy", y);
+        circle.setAttribute("r", 4);
+        circle.setAttribute("fill", "blue");
+        svg.appendChild(circle);
+
+        if (prevX !== null && prevY !== null) {
+          const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          line.setAttribute("x1", prevX);
+          line.setAttribute("y1", prevY);
+          line.setAttribute("x2", x);
+          line.setAttribute("y2", y);
+          line.setAttribute("stroke", "blue");
+          line.setAttribute("stroke-width", 2);
+          svg.appendChild(line);
+        }
+        prevX = x;
+        prevY = y;
+      }
+    }
+  </script>
+</body>
+</html>
